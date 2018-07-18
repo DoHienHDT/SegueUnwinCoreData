@@ -7,15 +7,28 @@
 //
 
 import UIKit
-import CoreData
-class MasterTableViewController: UITableViewController {
-    
+class MasterTableViewController: UITableViewController , UISearchResultsUpdating{
+    func updateSearchResults(for searchController: UISearchController) {
+        search = DataSerVice.shared.arrays.filter({(searchData : Entity) -> Bool in
+            return (searchData.name?.lowercased().contains(searchController.searchBar.text!.lowercased()))!
+        })
+        tableView.reloadData()
+    }
+    var search : [Entity] = []
+    let controller = UISearchController(searchResultsController: nil)
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        controller.searchResultsUpdater = self
+        controller.dimsBackgroundDuringPresentation = false
+        controller.searchBar.sizeToFit()
+        self.tableView.tableHeaderView = controller.searchBar
+        controller.hidesNavigationBarDuringPresentation = false
+        definesPresentationContext = true
+        self.tableView.reloadData()
     }
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
+        
         // Dispose of any resources that can be recreated.
     }
     override func viewWillAppear(_ animated: Bool) {
@@ -31,25 +44,32 @@ class MasterTableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return DataSerVice.shared.arrays.count
+        if controller.isActive {
+            return search.count
+        }else {
+            return DataSerVice.shared.arrays.count
+        }
     }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath) as! TableViewCell
-        cell.nameLabel.text = String(DataSerVice.shared.arrays[indexPath.row].age)
+        
+        var listEntity : [Entity] = []
+        if controller.isActive {
+            listEntity = search
+        }else {
+            listEntity = DataSerVice.shared.arrays
+        }
+        cell.nameLabel.text = (String(DataSerVice.shared.arrays[indexPath.row].age))
         cell.nameTextField.text = DataSerVice.shared.arrays[indexPath.row].name
         cell.photoImage.image = DataSerVice.shared.arrays[indexPath.row].image as? UIImage
         return cell
     }
-    
-    // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             DataSerVice.shared.remove(at: indexPath)
             tableView.deleteRows(at: [indexPath], with: .fade)
-            
         }
     }
-
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
 
         if let detailViewController = segue.destination as? DetailViewController {
